@@ -46,7 +46,7 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
 			       const uint64_t recv_timestamp_acked,
 			       /* when the acknowledged datagram was received (receiver's clock)*/
 			       const uint64_t timestamp_ack_received )
-                               /* when the ack was received (by sender) */
+                   /* when the ack was received (by sender) */
 {
   /* Default: take no action */
 
