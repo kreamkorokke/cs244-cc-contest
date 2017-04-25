@@ -8,8 +8,8 @@ using namespace std;
 #define INIT_WIND 10        // in # of datagrams
 #define PACKET_TIMEOUT 100  // in miliseconds
 
-#define T_HIGH 120          // Threshold for high RTT
-#define T_LOW 80            // Threshold for low RTT
+#define T_HIGH 70          // Threshold for high RTT
+#define T_LOW 50            // Threshold for low RTT
 #define T_LOW_DELTA 1       // Additive increment for low flow
 #define T_HIGH_BETA 0.5     // Beta value for high flow
 
@@ -69,15 +69,20 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
   }
 
   if (new_rtt > T_HIGH) {
-    double new_wind = cur_wind_ * (1 - (T_HIGH_BETA*(1-(double)T_HIGH/new_rtt)));
+//    double new_wind = cur_wind_ * (1 - (T_HIGH_BETA*(1-(double)T_HIGH/new_rtt)));
+//
+//    if (debug_) {
+//      cerr << "Original window size is: "
+//        << cur_wind_ << ", the new window size is: "
+//        << new_wind << endl;
+//    }
+//    
+//    cur_wind_ = new_wind;
 
-    if (debug_) {
-      cerr << "Original window size is: "
-        << cur_wind_ << ", the new window size is: "
-        << new_wind << endl;
+    cur_wind_--;
+    if (cur_wind_ <= 0) {
+      cur_wind_ = 1.0;
     }
-    
-    cur_wind_ = new_wind;
 
   } else if (new_rtt < T_LOW) {
     cur_wind_ += T_LOW_DELTA;
