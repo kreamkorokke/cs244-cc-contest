@@ -38,7 +38,7 @@ unsigned int Controller::window_size( void )
 void Controller::datagram_was_sent( const uint64_t sequence_number,
 				    /* of the sent datagram */
 				    const uint64_t send_timestamp )
-                                    /* in milliseconds */
+                    /* in milliseconds */
 {
   if ( debug_ ) {
     cerr << "At time " << send_timestamp
@@ -54,7 +54,7 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
 			       const uint64_t recv_timestamp_acked,
 			       /* when the acknowledged datagram was received (receiver's clock)*/
 			       const uint64_t timestamp_ack_received )
-                               /* when the ack was received (by sender) */
+                   /* when the ack was received (by sender) */
 {
   /* Default: take no action */
 
