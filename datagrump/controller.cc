@@ -28,7 +28,7 @@ unsigned int Controller::window_size( void )
 void Controller::datagram_was_sent( const uint64_t sequence_number,
 				    /* of the sent datagram */
 				    const uint64_t send_timestamp )
-                                    /* in milliseconds */
+                    /* in milliseconds */
 {
   /* Default: take no action */
 
