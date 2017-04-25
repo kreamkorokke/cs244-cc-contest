@@ -10,7 +10,8 @@ class Controller
 private:
   bool debug_; /* Enables debugging output */
 
-  /* Add member variables here */
+  /* Current window size in # of datagramss */
+  double cur_wind_;
 
 public:
   /* Public interface for the congestion controller */
