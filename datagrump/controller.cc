@@ -10,8 +10,8 @@ using namespace std;
 
 #define T_HIGH 100           // Threshold for high RTT
 #define T_LOW 50            // Threshold for low RTT
-#define T_LOW_DELTA (cur_wind_/4)       // Additive increment for low flow
-#define T_HIGH_DELTA (cur_wind_/2)      // Decrement for high flow
+#define T_LOW_DELTA 1       // Additive increment for low flow
+#define T_HIGH_DELTA 2      // Decrement for high flow
 
 /* TIMELY algorithm with no gradient */
 
