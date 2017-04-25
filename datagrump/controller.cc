@@ -6,11 +6,11 @@
 using namespace std;
 
 #define INIT_WIND 10  // in # of datagrams
-#define PACKET_TIMEOUT 60  // in miliseconds
+#define PACKET_TIMEOUT 50  // in miliseconds
 
 /* Default constructor */
 Controller::Controller( const bool debug )
-  : debug_( debug ), cur_wind_((double)INIT_WIND)
+  : debug_( debug ), cur_wind_(INIT_WIND)
 {}
 
 /* Get current window size, in datagrams */
@@ -19,12 +19,12 @@ unsigned int Controller::window_size( void )
   if ( debug_ ) {
     cerr << "At time " << timestamp_ms()
 	 << " window size (double) is " << cur_wind_
-   << "(double) and " << (unsigned int)cur_wind_
+   << "(double) and " << cur_wind_
    << "(unsigned int)"
    << endl;
   }
 
-  return (unsigned int)cur_wind_;
+  return cur_wind_;
 }
 
 /* A datagram was sent */
@@ -70,13 +70,13 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
   if (time_diff > timeout_ms()) {
     /* Timeout occured. Cut the window size in half */
     cur_wind_ /= 2;
-    if ((unsigned int)cur_wind_ == 0) {
-      cur_wind_ = 1.0;
+    if (cur_wind_ == 0) {
+      cur_wind_ = 1;
     }
   } else {
-    /* Increase by 1/w so that after an RTT, the window size
-     * grows by one packet */
-    cur_wind_ += 1/cur_wind_;
+    /* Increase by 1 so that after an RTT, the window size
+     * grows by one window size */
+    cur_wind_ += 1;
   }
 }
 
