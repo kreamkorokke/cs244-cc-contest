@@ -11,7 +11,7 @@ private:
   bool debug_; /* Enables debugging output */
 
   /* Current window size in # of datagramss */
-  unsigned int cur_wind_;
+  double cur_wind_;
 
 public:
   /* Public interface for the congestion controller */
