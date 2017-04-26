@@ -2,6 +2,24 @@
 #define CONTROLLER_HH
 
 #include <cstdint>
+#include <deque>
+#include <map>
+
+class Filter
+{
+private:
+  std::deque <std::pair<uint64_t, double>> container;
+  int filter_width;
+  double max_value;
+  double min_value;
+
+public:
+  Filter(double width);
+  void add_datapoint(const uint64_t timestamp, const double value);
+  double get_max();
+  double get_min();
+};
+
 
 /* Congestion controller interface */
 
@@ -12,6 +30,15 @@ private:
 
   /* Current window size in # of datagramss */
   double cur_wind_;
+
+  Filter rtt_filter;
+  Filter bw_filter;
+
+  int delivered;
+  std::map <uint64_t, int> delivery_map;
+
+  uint64_t next_cycle_time;
+  int cycle_count;
 
 public:
   /* Public interface for the congestion controller */
