@@ -125,26 +125,6 @@ Controller::Controller( const bool debug )
 /* Get current window size, in datagrams */
 unsigned int Controller::window_size( void )
 {
-  /* Update window size */
-  uint64_t curr = timestamp_ms();
-
-  double rtt_avg = rtt_averager.get_avg();
-  double rtt_thres = rttprop_filter.get_min() * 1.3;
-  double bw = bw_filter.get_max();
-  double bdp = bw * rtt_thres;
-
-  if (curr > BBR_START_TIME) {
-    if (rtt_avg < rtt_thres) {
-        cur_wind_ = (int)(bdp * 1.15 + .5);
-      } else {
-        cur_wind_ = (int)(bdp * 0.85 + .5);
-      }
-  }
-
-  /* Prevent window size from dropping to zero */
-  if (cur_wind_ <= 1) cur_wind_ = 1;
-
-
   if ( debug_ ) {
     cerr << "At time " << timestamp_ms()
 	 << " window size (int) is " << cur_wind_
@@ -196,6 +176,25 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
   double delivery_rate = (double)(delivered - cache[sequence_number_acked]) / rtt;
   cache.erase (sequence_number_acked);
   bw_filter.add_datapoint(timestamp_ack_received, delivery_rate);
+
+  /* Update window size */
+  uint64_t curr = timestamp_ms();
+
+  double rtt_avg = rtt_averager.get_avg();
+  double rtt_thres = rttprop_filter.get_min() * 1.3;
+  double bw = bw_filter.get_max();
+  double bdp = bw * rtt_thres;
+
+  if (curr > BBR_START_TIME) {
+    if (rtt_avg < rtt_thres) {
+        cur_wind_ = (int)(bdp * 1.15 + .5);
+      } else {
+        cur_wind_ = (int)(bdp * 0.85 + .5);
+      }
+  }
+
+  /* Prevent window size from dropping to zero */
+  if (cur_wind_ <= 1) cur_wind_ = 1;
 }
 
 /* How long to wait (in milliseconds) if there are no acks
