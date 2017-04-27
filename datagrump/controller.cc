@@ -8,9 +8,13 @@
 
 using namespace std;
 
+/** Filter Implementation **
+A filter can track the max or min value within a timerange [T-W, T], where
+T is the current time and W is the width of the filter. 
+*/
+
 #define MAX_FLOAT numeric_limits<double>::max()
 
-/* Filter Implementation */
 Filter::Filter (double width)
   : container(), 
     filter_width(width),
@@ -63,64 +67,88 @@ double Filter::get_min()
 }
 
 
+/** Averager Implementation **
+An averager tracks a moving average of data points. The old values are exponentially
+damped by a decay factor.
+*/
+Averager::Averager ()
+  : decay_factor (-1),
+    average (0),
+    counter (0) {}
+
+Averager::Averager (double decay)
+  : decay_factor (decay),
+    average (0),
+    counter (0) {}
+
+void Averager::add_datapoint(const double value) 
+{
+    if (decay_factor < 0) {
+        average = (average * counter + value) / (counter + 1);
+    } else {
+        average = average * decay_factor + value * (1 - decay_factor);
+    }
+    counter ++;
+}
+
+double Averager::get_avg()
+{
+    return average;
+}
+
+
+/** Congestion Controller Implementation **/
+
+
 #define INIT_WIND 10        // in # of datagrams
 #define PACKET_TIMEOUT 100  // in miliseconds
 
-#define RTT_FILTER_WIDTH 1000    // in miliseconds
-#define BW_FILTER_WIDTH 500      // in miliseconds
+#define RTT_FILTER_WIDTH 10000   // in miliseconds
+#define BW_FILTER_WIDTH 100      // in miliseconds
 
-#define BRR_START_TIME 500
-#define PACING_CYCLE 200
+#define RTT_DECAY_FACTOR 0.8
+
+#define BBR_START_TIME 500
 
 
 /* Default constructor */
 Controller::Controller( const bool debug )
   : debug_( debug ), 
     cur_wind_( INIT_WIND ),
-    rtt_filter ( Filter(RTT_FILTER_WIDTH) ),
-    bw_filter ( Filter(BW_FILTER_WIDTH) ),
+    rtt_averager (Averager(RTT_DECAY_FACTOR)),
+    rttprop_filter (Filter(RTT_FILTER_WIDTH)),
+    bw_filter (Filter(BW_FILTER_WIDTH)),
     delivered (0),
-    delivery_map (),
-    next_cycle_time ( BRR_START_TIME ),
-    cycle_count (0)
+    cache ()
 {}
 
 /* Get current window size, in datagrams */
 unsigned int Controller::window_size( void )
 {
-  double bw   = bw_filter.get_max();
-  double rtt  = rtt_filter.get_min();
-  double bdp  = bw * rtt;
+  /* Update window size */
   uint64_t curr = timestamp_ms();
 
-  // if (curr > next_cycle_time) {
-  //   next_cycle_time = curr + (int)rtt;
-  //   cycle_count ++;
-  //   if (cycle_count % PACING_CYCLE == 0) {
-  //     cur_wind_ = max(bdp * 1.25, 5.);
-  //   } else if (cycle_count % PACING_CYCLE == 1) {
-  //     cur_wind_ = bdp * 0.5;
-  //   } else {
-  //     cur_wind_ = bdp;
-  //   }
-  // }
+  double rtt_avg = rtt_averager.get_avg();
+  double rtt_thres = rttprop_filter.get_min() * 1.3;
+  double bw = bw_filter.get_max();
+  double bdp = bw * rtt_thres;
 
-  if (curr > BRR_START_TIME) {
-    if (curr % PACING_CYCLE <= 20) {
-      cur_wind_ = max(bdp * 1.25, 5.);
-    } else if (curr % PACING_CYCLE <= 40) {
-      cur_wind_ = bdp * 0.75;
-    } else {
-      cur_wind_ = bdp;
-    }
+  if (curr > BBR_START_TIME) {
+    if (rtt_avg < rtt_thres) {
+        cur_wind_ = (int)(bdp * 1.15 + .5);
+      } else {
+        cur_wind_ = (int)(bdp * 0.85 + .5);
+      }
   }
+
+  /* Prevent window size from dropping to zero */
+  if (cur_wind_ <= 1) cur_wind_ = 1;
+
 
   if ( debug_ ) {
     cerr << "At time " << timestamp_ms()
-	 << " window size (double) is " << cur_wind_
-   << "(double) and " << (unsigned int)cur_wind_
-   << "(unsigned int)"
-   << endl;
+	 << " window size (int) is " << cur_wind_
+     << endl;
   }
 
   return (unsigned int)cur_wind_;
@@ -137,7 +165,7 @@ void Controller::datagram_was_sent( const uint64_t sequence_number,
 	 << " sent datagram " << sequence_number << endl;
   }
 
-  delivery_map[sequence_number] = delivered;
+  cache[sequence_number] = delivered;
 }
 
 /* An ack was received */
@@ -160,12 +188,13 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
 
   /* Calculate RTT */
   int rtt = timestamp_ack_received - send_timestamp_acked;
-  rtt_filter.add_datapoint(timestamp_ack_received, rtt);
+  rtt_averager.add_datapoint(rtt);
+  rttprop_filter.add_datapoint(timestamp_ack_received, rtt);
 
   /* Calculate bandwidth */
   delivered ++;
-  double delivery_rate = (double)(delivered - delivery_map[sequence_number_acked]) / rtt;
-  delivery_map.erase (sequence_number_acked);
+  double delivery_rate = (double)(delivered - cache[sequence_number_acked]) / rtt;
+  cache.erase (sequence_number_acked);
   bw_filter.add_datapoint(timestamp_ack_received, delivery_rate);
 }
 

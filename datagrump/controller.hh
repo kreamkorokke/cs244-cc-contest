@@ -20,6 +20,20 @@ public:
   double get_min();
 };
 
+class Averager
+{
+private:
+  double decay_factor;
+  double average;
+  int counter;
+
+public:
+  Averager();
+  Averager(double decay);
+  void add_datapoint(const double value);
+  double get_avg();
+};
+
 
 /* Congestion controller interface */
 
@@ -29,16 +43,15 @@ private:
   bool debug_; /* Enables debugging output */
 
   /* Current window size in # of datagramss */
-  double cur_wind_;
+  int cur_wind_;
 
-  Filter rtt_filter;
+  /* Estimators for RTT and BW */
+  Averager rtt_averager;
+  Filter rttprop_filter;
   Filter bw_filter;
 
   int delivered;
-  std::map <uint64_t, int> delivery_map;
-
-  uint64_t next_cycle_time;
-  int cycle_count;
+  std::map <uint64_t, int> cache;
 
 public:
   /* Public interface for the congestion controller */
