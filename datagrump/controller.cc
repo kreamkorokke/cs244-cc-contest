@@ -107,6 +107,7 @@ double Averager::get_avg()
 #define BW_FILTER_WIDTH 100      // in miliseconds
 
 #define RTT_DECAY_FACTOR 0.8
+#define RTT_THRES_MULTIPLIER 1.3
 
 #define BBR_START_TIME 500
 
@@ -181,7 +182,7 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
   uint64_t curr = timestamp_ms();
 
   double rtt_avg = rtt_averager.get_avg();
-  double rtt_thres = rttprop_filter.get_min() * 1.3;
+  double rtt_thres = rttprop_filter.get_min() * RTT_THRES_MULTIPLIER;
   double bw = bw_filter.get_max();
   double bdp = bw * rtt_thres;
 
